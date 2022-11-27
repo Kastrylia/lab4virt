@@ -1,0 +1,50 @@
+version: '2'
+
+services:
+  rabbitmq:
+    image: rabbitmq:management
+    mem_limit: 1024m
+    mem_reservation: 256M
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+
+  postgres:
+    image: 'postgres'
+    container_name: postgres
+    mem_limit: 1024m
+    mem_reservation: 256M
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+
+  subscriber:
+    image: kastrylia/subscriber:latest
+    mem_limit: 512m
+    mem_reservation: 128M
+    build:
+      context: .
+    container_name: subscriber
+    depends_on:
+      - postgres
+      - rabbitmq
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://psql:5432/postgres
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=postgres
+      - RABBIT_HOST=rabbitmq 
+      - RABBIT_QUEUE=queueStudents
+
+  producer:
+    image: kastrylia/publisher:latest
+    mem_limit: 512m
+    mem_reservation: 128M
+    build:
+      context: .
+    container_name: producer
+    depends_on:
+      - rabbitmq
+    environment:
+      - RABBIT_HOST=rabbitmq
+      - RABBIT_QUEUE=queueStudents
+    network_mode: host
